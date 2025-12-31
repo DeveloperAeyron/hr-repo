@@ -6,18 +6,23 @@ st.set_page_config(page_title="Work Hours Calculator", layout="centered")
 
 st.title("User Work Hours Calculator")
 
-# --- NEW: Expected hours input ---
+# --- Inputs ---
 expected_monthly_hours = st.number_input(
     "Expected working hours for this month",
     min_value=0.0,
     step=1.0
 )
 
+leaves_taken = st.number_input(
+    "Number of leaves taken this month",
+    min_value=0.0,
+    step=0.5
+)
+
 uploaded_file = st.file_uploader("Upload XLSX file", type=["xlsx"])
 
 
 def calculate_daily_work_hours(df):
-    # Normalize column names
     df.columns = [c.strip().lower() for c in df.columns]
 
     required_cols = {"timestamp", "user", "check-in / check-out"}
@@ -73,14 +78,22 @@ if uploaded_file:
 
         user, total_hours, daily_df = calculate_daily_work_hours(df)
 
-        overtime = round(total_hours - expected_monthly_hours, 2)
+        # --- Leave adjustment ---
+        LEAVE_HOURS_PER_DAY = 9
+        leave_hours = round(leaves_taken * LEAVE_HOURS_PER_DAY, 2)
+        adjusted_total_hours = round(total_hours + leave_hours, 2)
+
+        overtime = round(adjusted_total_hours - expected_monthly_hours, 2)
 
         st.success("Calculation completed successfully")
 
         # --- Summary ---
         st.subheader("Summary")
         st.write(f"**User:** {user}")
-        st.write(f"**Total Hours Worked:** {total_hours}")
+        st.write(f"**Actual Hours Worked:** {total_hours}")
+        st.write(f"**Leaves Taken:** {leaves_taken} days")
+        st.write(f"**Leave Hours Added:** {leave_hours}")
+        st.write(f"**Adjusted Total Hours:** {adjusted_total_hours}")
         st.write(f"**Expected Monthly Hours:** {expected_monthly_hours}")
 
         if overtime > 0:
